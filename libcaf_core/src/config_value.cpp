@@ -19,19 +19,57 @@
 
 #include "caf/config_value.hpp"
 
+#include "caf/detail/type_traits.hpp"
+
 namespace caf {
 
-config_value::config_value(config_value& other) : data_(other.data_) {
-  // nop
-}
+namespace {
 
-config_value& config_value::operator=(config_value& other) {
-  data_ = other.data_;
-  return *this;
-}
+struct less_comparator {
+  template <class T, class U>
+  detail::enable_if_t<std::is_same<T, U>::value, bool>
+  operator()(const T& x, const U& y) const {
+    return x < y;
+  }
+
+  template <class T, class U>
+  detail::enable_if_t<!std::is_same<T, U>::value, bool>
+  operator()(const T&, const U&) const {
+    // Sort by type index when comparing different types.
+    using namespace detail;
+    using types = config_value::types;
+    return tl_index_of<types, T>::value < tl_index_of<types, U>::value;
+  }
+};
+
+struct equal_comparator {
+  template <class T, class U>
+  detail::enable_if_t<std::is_same<T, U>::value, bool>
+  operator()(const T& x, const U& y) const {
+    return x == y;
+  }
+
+  template <class T, class U>
+  detail::enable_if_t<!std::is_same<T, U>::value, bool>
+  operator()(const T&, const U&) const {
+    return false;
+  }
+};
+
+} // namespace <anonymous>
 
 config_value::~config_value() {
   // nop
+}
+
+bool operator<(const config_value& x, const config_value& y) {
+  less_comparator cmp;
+  return visit(cmp, x.data(), y.data());
+}
+
+bool operator==(const config_value& x, const config_value& y) {
+  equal_comparator cmp;
+  return visit(cmp, x.data(), y.data());
 }
 
 } // namespace caf

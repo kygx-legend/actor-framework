@@ -16,30 +16,34 @@
  * http://www.boost.org/LICENSE_1_0.txt.                                      *
  ******************************************************************************/
 
-#ifndef CAF_TIMESTAMP_HPP
-#define CAF_TIMESTAMP_HPP
+#include "caf/config.hpp"
 
-#include <chrono>
+#define CAF_SUITE config_value
+#include "caf/test/unit_test.hpp"
+
 #include <string>
-#include <cstdint>
 
-namespace caf {
+#include "caf/none.hpp"
+#include "caf/variant.hpp"
+#include "caf/actor_system.hpp"
+#include "caf/deep_to_string.hpp"
+#include "caf/binary_serializer.hpp"
+#include "caf/binary_deserializer.hpp"
+#include "caf/actor_system_config.hpp"
 
-using timespan = std::chrono::duration<int64_t, std::nano>;
+using namespace std;
+using namespace caf;
 
-/// A portable timestamp with nanosecond resolution anchored at the UNIX epoch.
-using timestamp = std::chrono::time_point<std::chrono::system_clock, timespan>;
+struct tostring_visitor : static_visitor<string> {
+  template <class T>
+  inline string operator()(const T& value) {
+    return to_string(value);
+  }
+};
 
-/// Convenience function for returning a `timestamp` representing
-/// the current system time.
-timestamp make_timestamp();
+CAF_TEST(default_constructed) {
+  config_value x;
+  CAF_CHECK_EQUAL(holds_alternative<int64_t>(x), true);
+  CAF_CHECK_EQUAL(get<int64_t>(x), 0);
+}
 
-/// Converts the time-since-epoch of `x` to a `string`.
-std::string timestamp_to_string(const timestamp& x);
-
-/// Appends the time-since-epoch of `y` to `x`.
-void append_timestamp_to_string(std::string& x, const timestamp& y);
-
-} // namespace caf
-
-#endif // CAF_TIMESTAMP_HPP
